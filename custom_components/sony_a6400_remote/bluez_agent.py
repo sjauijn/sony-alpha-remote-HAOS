@@ -36,7 +36,7 @@ from dbus_fast.service import ServiceInterface, method
 
 _LOGGER = logging.getLogger(__name__)
 
-AGENT_PATH = "/org/bluez/agent/sony_a6400_remote"
+AGENT_PATH = "/org/bluez/agent/sony_alpha_remote"
 AGENT_MANAGER_IFACE = "org.bluez.AgentManager1"
 AGENT_MANAGER_PATH = "/org/bluez"
 
