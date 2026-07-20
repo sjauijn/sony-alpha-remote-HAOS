@@ -1,5 +1,5 @@
 {
-  "domain": "sony_a6400_remote",
+  "domain": "sony_alpha_remote",
   "name": "Sony Camera BLE Remote",
   "codeowners": [],
   "config_flow": true,
