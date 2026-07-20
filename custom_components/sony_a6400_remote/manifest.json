@@ -7,8 +7,8 @@
   "documentation": "https://github.com/yourusername/sony_a6400_remote",
   "integration_type": "device",
   "iot_class": "local_push",
-  "requirements": ["bleak-retry-connector>=3.0.0"],
-  "version": "1.0.0",
+  "requirements": ["bleak-retry-connector>=3.0.0", "dbus-fast>=2.21.0"],
+  "version": "1.1.0",
   "bluetooth": [
     {
       "local_name": "ILCE-*"
