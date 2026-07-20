@@ -1,4 +1,4 @@
-"""BLE device wrapper for a Sony Camera Remote (A6400 and compatible models).
+"""BLE device wrapper for a Sony Camera Remote (for compatible models).
 
 Mirrors the connection/write pattern used by the app's original Android
 implementation (CameraBLE.kt): connect to a GATT server that must already be
