@@ -6,7 +6,7 @@ no official Sony app required. Protocol reverse engineered by
 [Coral](https://github.com/coral/freemote),
 [Greg Leeds](https://gregleeds.com/reverse-engineering-sony-camera-bluetooth/)
 and Mark Kirschenbaum, and re-derived here from the
-[alpharemote](https://github.com/Staacks/alpharemote) Android app (GPL-3.0).
+[alpharemote](https://github.com/Staacks/alpharemote) .
 
 ## Features
 
