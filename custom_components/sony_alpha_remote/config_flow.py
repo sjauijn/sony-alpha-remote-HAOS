@@ -6,6 +6,7 @@ bluetoothctl required.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -33,36 +34,29 @@ class SonyCameraConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._mac: str | None = None
         self._name: str | None = None
+        self._pair_task: asyncio.Task[None] | None = None
+        self._pair_error: CameraPairingError | None = None
 
-    async def _async_do_pair(self) -> ConfigFlowResult:
-        """Attempt to pair with self._mac and create the entry on success."""
+    async def _async_pair_task(self) -> None:
+        """Background task that does the actual pairing (runs for up to
+        PAIR_TIMEOUT seconds), so the HTTP/WS request that triggers a step
+        doesn't have to stay open that long. Home Assistant's frontend
+        gives up on a step submission after ~10s; without show_progress the
+        pairing attempt kept running in the background with nothing to
+        show the result to, which is why Submit appeared to do nothing.
+        """
+        self._pair_error = None
         ble_device = async_ble_device_from_address(
             self.hass, self._mac, connectable=True
         )
         if ble_device is None:
-            return self.async_show_form(
-                step_id="pair",
-                errors={"base": "not_found"},
-                description_placeholders={"name": self._name or self._mac},
-            )
-
+            self._pair_error = CameraPairingError("not_found")
+            return
         try:
             await async_pair_camera(ble_device)
         except CameraPairingError as err:
             _LOGGER.warning("Pairing with %s failed: %s", self._mac, err)
-            return self.async_show_form(
-                step_id="pair",
-                errors={"base": "pairing_failed"},
-                description_placeholders={
-                    "name": self._name or self._mac,
-                    "error": str(err),
-                },
-            )
-
-        return self.async_create_entry(
-            title=self._name or f"Sony Camera ({self._mac})",
-            data={CONF_MAC: self._mac},
-        )
+            self._pair_error = err
 
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfoBleak
@@ -127,10 +121,63 @@ class SonyCameraConfigFlow(ConfigFlow, domain=DOMAIN):
         enabled and is awake/in range.
         """
         if user_input is None:
-            # First visit to this step: show a confirmation/progress form,
-            # then actually attempt pairing once the user submits it.
+            # First visit to this step: show a confirmation form, then
+            # move to the progress step once the user submits it.
             return self.async_show_form(
                 step_id="pair",
                 description_placeholders={"name": self._name or self._mac},
             )
-        return await self._async_do_pair()
+        return await self.async_step_pair_progress()
+
+    async def async_step_pair_progress(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show a progress screen while pairing runs in the background.
+
+        Pairing can take several seconds (BLE connect, then the actual
+        bond) and Home Assistant's frontend stops waiting on a step
+        submission after about 10 seconds. Running the work as a tracked
+        background task and returning async_show_progress keeps the UI
+        updated instead of the Submit button silently doing nothing.
+        """
+        if self._pair_task is None:
+            self._pair_task = self.hass.async_create_task(self._async_pair_task())
+
+        if not self._pair_task.done():
+            return self.async_show_progress(
+                progress_action="pair",
+                progress_task=self._pair_task,
+                description_placeholders={"name": self._name or self._mac},
+            )
+
+        self._pair_task = None
+
+        if self._pair_error is not None:
+            return self.async_show_progress_done(next_step_id="pair_failed")
+
+        return self.async_show_progress_done(next_step_id="pair_done")
+
+    async def async_step_pair_done(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pairing succeeded: create the config entry."""
+        return self.async_create_entry(
+            title=self._name or f"Sony Camera ({self._mac})",
+            data={CONF_MAC: self._mac},
+        )
+
+    async def async_step_pair_failed(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pairing failed: show the error and let the user retry."""
+        error = self._pair_error
+        self._pair_error = None
+        error_key = "not_found" if str(error) == "not_found" else "pairing_failed"
+        placeholders = {"name": self._name or self._mac}
+        if error_key == "pairing_failed":
+            placeholders["error"] = str(error)
+        return self.async_show_form(
+            step_id="pair",
+            errors={"base": error_key},
+            description_placeholders=placeholders,
+        )

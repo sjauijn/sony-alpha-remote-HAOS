@@ -17,6 +17,9 @@
         "description": "Home Assistant will now pair (bond) with the camera over Bluetooth. No PIN is needed. Keep the camera turned on and nearby, then press Submit."
       }
     },
+    "progress": {
+      "pair": "Pairing with {name}\u2026 keep the camera awake and nearby. This can take up to 30 seconds."
+    },
     "error": {
       "pairing_failed": "Pairing failed: {error}",
       "not_found": "The camera is no longer visible over Bluetooth. Make sure it is turned on and in range, then try again."
