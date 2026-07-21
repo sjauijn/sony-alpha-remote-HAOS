@@ -14,11 +14,11 @@
       },
       "pair": {
         "title": "Pair with {name}",
-        "description": "Home Assistant will now pair (bond) with the camera over Bluetooth. No PIN is needed. Keep the camera turned on and nearby, then press Submit.\n\n{error}"
+        "description": "Home Assistant will now pair (bond) with the camera over Bluetooth. No PIN is needed. Keep the camera turned on and nearby, then press Submit."
       }
     },
     "error": {
-      "pairing_failed": "Pairing failed. See the message above for details.",
+      "pairing_failed": "Pairing failed: {error}",
       "not_found": "The camera is no longer visible over Bluetooth. Make sure it is turned on and in range, then try again."
     },
     "abort": {
