@@ -1,115 +1,73 @@
-# Sony Camera BLE Remote — интеграция для Home Assistant
+# Sony Alpha Remote BT — Home Assistant Integration
 
-Управление Sony A6400 (и совместимыми камерами с "Bluetooth Rmt Ctrl") из
-Home Assistant по Bluetooth LE, без Wi-Fi и без проводов — **всё
-настраивается через UI**, никакого SSH/bluetoothctl не требуется.
+Custom Home Assistant integration for **Sony Alpha (ILCE-*) cameras** with
+Bluetooth remote control, connected directly over Bluetooth LE — no phone,
+no official Sony app required. Protocol reverse engineered by
+[Coral](https://github.com/coral/freemote),
+[Greg Leeds](https://gregleeds.com/reverse-engineering-sony-camera-bluetooth/)
+and Mark Kirschenbaum, and re-derived here from the
+[alpharemote](https://github.com/Staacks/alpharemote) .
 
-Протокол реверс-инжинирен Coral / Greg Leeds / Mark Kirschenbaum и взят из
-исходников open-source приложения [alpharemote](https://github.com/Staacks/alpharemote)
-(GPL-3.0).
+## Features
 
-## Что умеет
+- **Button entities** — Shutter, AF On, Record, C1, Zoom in/out,
+  Focus near/far
+- **Self-timer** — set a delay (1–60s) and fire the shutter after it
+  counts down, same as the self-timer in the reference app
+- **Binary sensor** — Recording status
 
-Кнопки (`button.*`):
-- **Shutter** — полный спуск затвора
-- **AF On** — эмуляция кнопки автофокуса (самое близкое к "фокусировке" из доступного по BLE)
-- **Record** — старт/стоп видеозаписи
-- **C1** — кастомная кнопка камеры
-- **Zoom in / Zoom out** — зум (если объектив моторизованный)
-- **Focus near / Focus far** — ручная подстройка фокуса (нужен физический переключатель камеры/объектива в положении MF или DMF)
+There is no "focus mode" control (AF-S/AF-C/MF) because the camera does not
+expose that switch over Bluetooth — only AF-On and manual focus near/far
+nudges are available, and manual focus nudges require the camera/lens to
+already be in MF or DMF mode via the physical switch.
 
-Датчики (`binary_sensor.*`):
-- **Connected** — есть ли активное BLE-соединение
-- **Focus acquired** — сообщается камерой при полу-нажатии
-- **Shutter open** — сообщается камерой во время экспозиции
-- **Recording** — идёт ли видеозапись
+## Compatibility
 
-## ⚠️ Важное ограничение
+This integration should work with any camera that is compatible with Sony's
+small physical **Bluetooth** (not IR!) remote control.
 
-Протокол Sony Bluetooth Remote эмулирует только **нажатия физических
-кнопок**. У камеры **нет** BLE-команды для переключения режима фокусировки
-(AF-S / AF-C / DMF / MF) — это механический переключатель на теле камеры,
-и он не передаётся по Bluetooth ни в одном известном протоколе. Кнопка
-"AF On" в этой интеграции — максимум, что доступно дистанционно в
-контексте фокусировки.
+So far, this has been confirmed for the following models:
 
-## Установка
+ILCE-6400 (α6400), ILCE-6600 (α6600), ILCE-6700 (α6700), ILCE-7M3 (α7 III),
+ILCE-7CM2 (α7C II), ILCE-7M4 (α7 IV), ILCE-7RM3 (α7R III), ILCE-7RM4 (α7R IV),
+ILCE-7RM5 (α7R V), ILCE-9 (α9), ZV-E10
 
-1. Скопируйте папку `custom_components/sony_a6400_remote` в
-   `<config>/custom_components/` вашего Home Assistant (например, через
-   Samba/SSH-аддон в HA OS, файловый менеджер, или HACS как кастомный
-   репозиторий).
-2. Перезапустите Home Assistant.
+It is expected to also work with the following models:
 
-## Подготовка камеры
+DSC-RX100M7, DSC-RX100M7G, ZV-1, ILCE-7M4K, ILCE-7RM4A, ZV-E10, ZV-E10L,
+ILCE-1, ILCE-7C, ILCE-7CL, ILCE-7SM3, ILCE-9M2, ILCE-6100, ILCE-6100L,
+ILCE-6100Y, ILCE-6600M, ILCE-6400L, ILCE-6400M, ILCE-7M3, ILCE-7M3K,
+ILCE-7RM3, ILCE-9, ILME-FX2, ILME-FX3, ILME-FX3A, ILX-LR1
 
-1. На камере: **Меню → Сеть → Bluetooth → Bluetooth-функция → Вкл.**
-2. Там же включите **Bluetooth Rmt Ctrl (дистанционное управление по Bluetooth)**.
-3. Держите камеру включённой и рядом с мини-ПК на время добавления
-   интеграции.
+Please let me know if your camera works if it has not yet been confirmed
+here.
 
-## Добавление и сопряжение (bonding) через UI
+## Installation via HACS (custom repository)
 
-Sony использует режим сопряжения **Just Works** — без PIN-кода и без
-подтверждения на экране. Это значит, что весь процесс bonding можно
-выполнить прямо во время добавления интеграции, без единой команды в
-терминале.
+1. HACS → Integrations → ⋮ menu (top right) → **Custom repositories**
+2. Add this repository URL, category **Integration**
+3. Install **Sony Alpha Remote BT**, restart Home Assistant
 
-1. **Настройки → Устройства и службы → Добавить интеграцию → Sony Camera BLE Remote**
-2. Если камера уже активна и в радиусе действия, HA может обнаружить её
-   автоматически — появится карточка обнаружения. Либо выберите её вручную
-   из списка на шаге **User**.
-3. На экране **Pair with ...** нажмите **Submit / Отправить** — интеграция
-   сама выполнит BLE-пейринг (эквивалент `bluetoothctl pair`, но изнутри
-   Home Assistant).
-4. Если пейринг не удался — интеграция покажет причину прямо в форме
-   (например, камера уснула, вне зоны действия, или Bluetooth Rmt Ctrl
-   выключен) и даст попробовать снова.
+## Setup
 
-После успешного пейринга устройство появится в списке ваших интеграций и
-будет автоматически переподключаться в дальнейшем — повторно спаривать не
-нужно.
+1. In the camera's menu, enable **Bluetooth Rmt Ctrl** (Menu > Network >
+   Bluetooth) and keep the camera awake and nearby
+2. Settings → Devices & services → **Add Integration** → search for "Sony
+   Alpha Remote BT"
+3. If discovered, confirm your camera; otherwise pick it from the list or
+   enter its Bluetooth address manually
+4. Home Assistant will pair (bond) with the camera — press Submit and
+   accept the confirmation prompt shown on the camera's own screen, if any
 
-## Пример автоматизации / кнопки на дашборде
+## Requirements
 
-```yaml
-type: button
-tap_action:
-  action: perform-action
-  perform_action: button.press
-  target:
-    entity_id: button.ilce_6400_af_on
-```
+- Home Assistant instance with Bluetooth support (built-in adapter or a
+  [Bluetooth proxy](https://esphome.io/components/bluetooth_proxy.html))
+  within range of the camera
+- A Sony Alpha camera with Bluetooth Remote Control support, with that
+  feature enabled in its menu
 
-## Почему раньше была ошибка `AuthenticationFailed`
+## Disclaimer
 
-На камере при пейринге появляется экран с запросом подтверждения ("Pair
-with <имя хоста>?"). Чтобы BlueZ вообще смог доставить этот запрос
-куда-либо, в системе должен быть зарегистрирован **pairing agent** —
-D-Bus объект, реализующий `org.bluez.Agent1`. На десктопе эту роль играет
-GNOME/KDE Bluetooth-панель, а в терминале — встроенный агент
-`bluetoothctl`. На headless-хосте (как HA OS) ничего это не предоставляет,
-поэтому голый вызов `pair()` падал с `org.bluez.Error.AuthenticationFailed`
-— BlueZ просто не находил, кому передать запрос подтверждения.
-
-Начиная с этой версии интеграция сама регистрирует временный
-auto-accept агент (`bluez_agent.py`) прямо перед вызовом `pair()` — это
-даёт тот же эффект, что и `bluetoothctl agent NoInputNoOutput`, но без
-единой команды в терминале. Агент живёт ровно на время одной попытки
-пейринга и снимается сразу после.
-
-## Если пейринг через UI всё же не срабатывает
-
-Такое возможно, если Bluetooth-адаптер хоста плохо поддерживает управление
-bonding через BlueZ D-Bus API (редко, но бывает на некоторых встроенных
-адаптерах), либо если на камере не успели нажать "Да" в отведённое время
-(30 секунд). Попробуйте ещё раз — форма пейринга в интеграции позволяет
-повторить попытку без выхода из мастера настройки.
-
-## Известные ограничения
-
-- Нет live view и нет передачи файлов по BLE (для этого нужен Wi-Fi API,
-  который у A6400 плохо документирован/поддерживается).
-- Нет прямого управления выдержкой/диафрагмой/ISO — только эмуляция кнопок.
-- Нет логического переключения режима фокусировки (см. выше).
-- Скорость zoom/focus jog зависит от объектива и не всегда предсказуема.
+This is an unofficial, reverse-engineered integration and is not
+affiliated with or endorsed by Sony.
